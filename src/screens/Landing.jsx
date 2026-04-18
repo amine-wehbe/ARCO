@@ -61,13 +61,18 @@ export default function Landing() {
     <>
       <ScreenHead num="01" title="Landing" note="press start · guest or sign in" />
       <CRT>
-        <Bezel title="· · A R C O · ·" right={<span className="muted" style={{ fontSize: 14 }}>code of duty presents</span>} />
+        <Bezel title="· · A R C O · ·" right={<span className="muted" style={{ fontSize: 14 }}>© CODE OF DUTY PRESENTS</span>} />
 
-        <div className="pixel-title" style={{ fontSize: 52, textAlign: "center", margin: "60px 0 10px", letterSpacing: "0.05em" }}>
-          PRESS START
+        <div style={{ textAlign: "center", margin: "60px 0 10px" }}>
+          <div className="pixel-title" style={{ fontSize: 28, letterSpacing: "0.3em", color: "var(--phos-dim)" }}>
+            A R C O
+          </div>
+          <div className="pixel-title" style={{ fontSize: 52, letterSpacing: "0.05em", marginTop: 8 }}>
+            PRESS START
+          </div>
         </div>
-        <div className="muted" style={{ textAlign: "center", fontSize: 18, marginBottom: 40 }}>
-          five games · one leaderboard · online multiplayer
+        <div className="pixel" style={{ textAlign: "center", fontSize: 12, marginBottom: 40, color: "var(--phos)" }}>
+          &gt; READY PLAYER ONE<span className="blink">_</span>
         </div>
 
         {mode === "menu" && (

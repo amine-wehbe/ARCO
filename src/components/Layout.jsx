@@ -21,7 +21,7 @@ export default function Layout({ children }) {
           <div className="logo-mark">A</div>
           <div>
             <div className="logo-name">ARCO</div>
-            <div className="logo-sub">code of duty</div>
+            <div className="logo-sub">© By Code Of Duty</div>
           </div>
         </div>
         <nav className="tabs">

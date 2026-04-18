@@ -7,6 +7,9 @@ import ScreenHead from "../components/ScreenHead";
 
 // AWS_WIRE: PATCH /users/{userId} to persist displayName — call updateProfile() from api/client.js
 
+const MUSIC_OPTIONS = ["8BIT", "ARCADE", "OFF"];
+const MUSIC_LABELS  = { "8BIT": "8-BIT TUNE", "ARCADE": "ARCADE FUN", "OFF": "OFF" };
+
 export default function Settings() {
   const { tweaks, setTweaks, navigate, signOut } = useApp();
   const [sound,  setSound]  = useState("ON");
@@ -19,6 +22,7 @@ export default function Settings() {
     { label: "DISPLAY NAME",  value: "pixelwyrm",                  action: null },
     { label: "EMAIL",         value: "add email to sync",           action: null },
     { label: "SIGN OUT",      value: "▸",                           action: signOut },
+    { label: "MUSIC",         value: `◂  ${MUSIC_LABELS[tweaks.music]}  ▸`, toggle: () => setTweaks({ music: MUSIC_OPTIONS[(MUSIC_OPTIONS.indexOf(tweaks.music) + 1) % MUSIC_OPTIONS.length] }) },
     { label: "SOUND",         value: `◂  ${sound}  ▸`,             toggle: () => setSound(s => s === "ON" ? "OFF" : "ON") },
     { label: "DIFFICULTY",    value: `◂ ${diff} ▸`,                toggle: () => setDiff(d => d === "NORMAL" ? "HARD" : "NORMAL") },
     { label: "CRT SCANLINES", value: `◂  ${tweaks.scan.toUpperCase()}  ▸`, toggle: () => setTweaks({ scan: tweaks.scan === "on" ? "off" : "on" }) },
@@ -42,8 +46,8 @@ export default function Settings() {
 
   const SECTIONS = [
     { label: "ACCOUNT", indices: [0, 1, 2] },
-    { label: "GAME",    indices: [3, 4] },
-    { label: "DISPLAY", indices: [5, 6] },
+    { label: "GAME",    indices: [3, 4, 5] },
+    { label: "DISPLAY", indices: [6, 7] },
   ];
 
   return (

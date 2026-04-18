@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AppProvider, useApp } from "./context/AppContext";
+import { useMusic } from "./hooks/useMusic";
 import Layout from "./components/Layout";
 import TweaksPanel from "./components/TweaksPanel";
 import Landing     from "./screens/Landing";
@@ -11,8 +12,9 @@ import Admin       from "./screens/Admin";
 import Settings    from "./screens/Settings";
 
 function Router() {
-  const { screen } = useApp();
+  const { screen, tweaks } = useApp();
   const [tweaksOpen, setTweaksOpen] = useState(false);
+  useMusic(tweaks.music);
 
   // Wireframe editor compat — open tweaks panel via postMessage
   useEffect(() => {

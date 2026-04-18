@@ -33,12 +33,11 @@ export default function InGame() {
   const [lastScore, setLastScore] = useState(null);
   const meta = GAME_META[activeGame] ?? { label: activeGame, controls: null };
 
-  // Q or ESC quits — disabled for Battleship (uses its own internal keyboard handling)
+  // Q or ESC quits — Q disabled for Battleship since it uses keyboard internally
   useKeyNav(e => {
+    if (e.key === "Escape") { e.preventDefault(); navigate("library"); }
     if (activeGame === "BATTLESHIP") return;
-    if (e.key === "Escape" || e.key === "q" || e.key === "Q") {
-      e.preventDefault(); navigate("library");
-    }
+    if (e.key === "q" || e.key === "Q") { e.preventDefault(); navigate("library"); }
   }, [activeGame]);
 
   function handleGameOver(score) {
@@ -68,7 +67,8 @@ export default function InGame() {
             <div className="label">CONTROLS</div>
             <div className="row" style={{ gap: 4 }}>
               {meta.controls}
-              {activeGame !== "BATTLESHIP" && <><span className="kbd">Q</span><span className="muted">quit</span></>}
+              {activeGame !== "BATTLESHIP" && <><span className="kbd">Q</span></>}
+              <span className="kbd">ESC</span><span className="muted">quit</span>
             </div>
           </div>
         </div>

@@ -34,9 +34,36 @@ header.top{
 }
 .tab:hover{color:var(--phos-bright);border-color:var(--phos-bright)}
 .tab.active{background:var(--phos);color:#000;border-color:var(--phos)}
+.music-player{
+  display:flex;align-items:center;gap:8px;
+  border:2px solid var(--phos-dim);padding:6px 10px;
+  background:rgba(78,245,154,0.04);flex-shrink:0;
+}
+.music-label{
+  width:72px;overflow:hidden;white-space:nowrap;
+  border-left:1px solid var(--phos-dim);border-right:1px solid var(--phos-dim);
+  padding:0 4px;
+}
+.music-label-inner{
+  font-size:8px;display:inline-block;white-space:nowrap;
+  padding-left:72px;
+  animation:music-scroll 7s linear infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.blink{animation:blink 1s step-start infinite}
+@keyframes music-scroll{
+  0%  {transform:translateX(0)}
+  100%{transform:translateX(-100%)}
+}
+.music-btn{
+  font-size:9px;border:2px solid var(--phos-dim);padding:4px 7px;
+  color:var(--phos-dim);transition:color .1s,border-color .1s;line-height:1;
+}
+.music-btn:hover{color:var(--phos);border-color:var(--phos)}
 
 main{padding:24px;max-width:1440px;margin:0 auto}
-.screen-head{display:flex;align-items:baseline;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.screen-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+.screen-head-left{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
 .screen-head h2{font-family:"Press Start 2P";font-size:18px;margin:0;color:#fff}
 .screen-head p{color:var(--phos-dim);margin:0;font-size:16px}
 

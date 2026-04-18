@@ -5,7 +5,7 @@ const Ctx = createContext(null);
 
 const SCREENS = ["landing", "library", "ingame", "leaderboard", "profile", "admin", "settings"];
 
-const DEFAULT_TWEAKS = { accent: "#4ef59a", pink: "#ff3b6b", scan: "on", g5: "PONG" };
+const DEFAULT_TWEAKS = { accent: "#4ef59a", pink: "#ff3b6b", scan: "on", g5: "PONG", music: localStorage.getItem("arco_music") || "8BIT" };
 
 export function AppProvider({ children }) {
   const [screen, setScreen]   = useState("landing");
@@ -23,6 +23,7 @@ export function AppProvider({ children }) {
   }, [tweaks]);
 
   function setTweaks(updates) {
+    if (updates.music !== undefined) localStorage.setItem("arco_music", updates.music);
     setTweaksState(prev => ({ ...prev, ...updates }));
   }
 
