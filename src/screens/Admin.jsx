@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { useKeyNav } from "../hooks/useKeyNav";
 import { fetchAdminMetrics, fetchAdminAlerts } from "../api/client";
@@ -25,14 +25,21 @@ const MOCK_ALERTS = [
 const MOCK_ACTIVE = [["SNAKE",421],["FLAPPY",318],["TIC-TAC",212],["MEMORY",94],["PONG",58]];
 
 export default function Admin() {
-  const { navigate } = useApp();
+  const { navigate, isAdmin } = useApp();
   const [cards]  = useState(MOCK_CARDS);
   const [alerts] = useState(MOCK_ALERTS);
   const [active] = useState(MOCK_ACTIVE);
 
+  // Hard gate — non-admins are immediately bounced, nothing renders
+  useEffect(() => {
+    if (!isAdmin) navigate("library");
+  }, [isAdmin]);
+
   useKeyNav(e => {
     if (e.key === "Escape") { e.preventDefault(); navigate("library"); }
   }, []);
+
+  if (!isAdmin) return null;
 
   // Uncomment when API Gateway is live:
   // useEffect(() => {

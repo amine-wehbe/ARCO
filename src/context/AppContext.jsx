@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { cognitoSignIn, cognitoSignUp, cognitoConfirm, cognitoSignOut, createUserProfile } from "../api/client";
+import { ADMIN_IDS } from "../config/admins";
 
 const Ctx = createContext(null);
 
@@ -8,8 +9,9 @@ const SCREENS = ["landing", "library", "ingame", "leaderboard", "profile", "admi
 const DEFAULT_TWEAKS = { accent: "#4ef59a", pink: "#ff3b6b", scan: "on", g5: "PONG", music: localStorage.getItem("arco_music") || "8BIT" };
 
 export function AppProvider({ children }) {
-  const [screen, setScreen]   = useState("landing");
-  const [user, setUser]       = useState(null);
+  const [screen, setScreen]       = useState("landing");
+  const [prevScreen, setPrevScreen] = useState("landing");
+  const [user, setUser]           = useState(null);
   const [activeGame, setActiveGame] = useState("SNAKE");
   const [tweaks, setTweaksState]    = useState(DEFAULT_TWEAKS);
   const [authError, setAuthError]   = useState(null);
@@ -29,7 +31,10 @@ export function AppProvider({ children }) {
   }
 
   function navigate(target) {
-    if (SCREENS.includes(target)) setScreen(target);
+    if (SCREENS.includes(target)) {
+      setPrevScreen(screen);
+      setScreen(target);
+    }
   }
 
   async function signInAsGuest() {
@@ -88,8 +93,15 @@ export function AppProvider({ children }) {
     navigate("ingame");
   }
 
+  // Merge partial updates into the user object (e.g. after profile edit)
+  function updateUser(fields) {
+    setUser(prev => prev ? { ...prev, ...fields } : prev);
+  }
+
+  const isAdmin = ADMIN_IDS.includes(user?.userId);
+
   return (
-    <Ctx.Provider value={{ screen, navigate, user, activeGame, launchGame, tweaks, setTweaks, signInAsGuest, signIn, signUp, confirm, signOut, authError, setAuthError, pendingEmail }}>
+    <Ctx.Provider value={{ screen, prevScreen, navigate, user, updateUser, isAdmin, activeGame, launchGame, tweaks, setTweaks, signInAsGuest, signIn, signUp, confirm, signOut, authError, setAuthError, pendingEmail }}>
       {children}
     </Ctx.Provider>
   );

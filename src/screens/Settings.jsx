@@ -11,7 +11,7 @@ const MUSIC_OPTIONS = ["8BIT", "ARCADE", "CELL THEME", "OFF"];
 const MUSIC_LABELS  = { "8BIT": "8-BIT TUNE", "ARCADE": "ARCADE FUN", "CELL THEME": "CELL THEME", "OFF": "OFF" };
 
 export default function Settings() {
-  const { tweaks, setTweaks, navigate, signOut, user } = useApp();
+  const { tweaks, setTweaks, navigate, prevScreen, signOut, user } = useApp();
   const [sound,  setSound]  = useState("ON");
   const [cursor, setCursor] = useState(0);
 
@@ -37,7 +37,7 @@ export default function Settings() {
     if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Enter") {
       e.preventDefault(); activate(cursor);
     }
-    if (e.key === "Escape")     { e.preventDefault(); navigate("library"); }
+    if (e.key === "Escape")     { e.preventDefault(); navigate(prevScreen); }
   }, [cursor, items]);
 
   const SECTIONS = [
@@ -83,7 +83,7 @@ export default function Settings() {
             <span className="kbd">ENTER</span><span className="muted">confirm</span>
             <span className="kbd">ESC</span><span className="muted">back</span>
           </div>
-          <button className="btn" onClick={() => navigate("library")}>SAVE &amp; BACK</button>
+          <button className="btn" onClick={() => navigate(prevScreen)}>SAVE &amp; BACK</button>
         </div>
       </CRT>
     </>

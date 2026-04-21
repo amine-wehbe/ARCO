@@ -10,29 +10,7 @@ const TABS = [
   { id: "settings",    label: "SETTINGS" },
 ];
 
-// Temporary dev nav — remove once in-screen navigation is fully wired
+// Layout wrapper — no top nav, navigation handled within each screen
 export default function Layout({ children }) {
-  const { screen, navigate } = useApp();
-
-  return (
-    <>
-      <header className="top">
-        <div className="logo">
-          <div className="logo-mark">A</div>
-          <div>
-            <div className="logo-name">ARCO</div>
-            <div className="logo-sub">© By Code Of Duty</div>
-          </div>
-        </div>
-        <nav className="tabs">
-          {TABS.map(t => (
-            <button key={t.id} className={"tab" + (screen === t.id ? " active" : "")} onClick={() => navigate(t.id)}>
-              {t.label}
-            </button>
-          ))}
-        </nav>
-      </header>
-      <main>{children}</main>
-    </>
-  );
+  return <main>{children}</main>;
 }

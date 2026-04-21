@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { useKeyNav } from "../hooks/useKeyNav";
 import { fetchLeaderboard } from "../api/client";
+import { ADMIN_IDS } from "../config/admins";
 import CRT from "../components/CRT";
 import Bezel from "../components/Bezel";
 import ScreenHead from "../components/ScreenHead";
@@ -44,6 +45,7 @@ export default function Leaderboard() {
           item.score,
           new Date(item.timestamp).toLocaleDateString(),
           item.userId === user?.userId,
+          ADMIN_IDS.includes(item.userId),
         ]);
         setRows(mapped);
       })
@@ -95,7 +97,10 @@ export default function Leaderboard() {
               : rows.map(r => (
                 <tr key={r[0]} className={r[4] ? "you" : ""}>
                   <td className="pixel" style={{ fontSize: 10, color: "var(--phos)" }}>{r[0]}</td>
-                  <td>{r[1]}</td>
+                  <td>
+                    {r[1]}
+                    {r[5] && <span className="pill accent" style={{ fontSize: 8, marginLeft: 6, padding: "1px 5px" }}>ADMIN</span>}
+                  </td>
                   <td className="pixel" style={{ fontSize: 10, textAlign: "right" }}>{r[2]}</td>
                   <td style={{ textAlign: "right" }}>{r[3]}</td>
                   <td style={{ color: "var(--pink)", fontSize: 13 }}>{r[4] ? "◂ YOU" : ""}</td>

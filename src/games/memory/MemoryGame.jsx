@@ -19,7 +19,7 @@ function makeCards() {
 
 // Props:
 //   onGameOver(score) — AWS_WIRE: hook up submitScore("MEMORY", score) in InGame.jsx
-export default function MemoryGame({ onGameOver }) {
+export default function MemoryGame({ onGameOver, isGuest, hiScore: dbHiScore = 0 }) {
   const [cards,    setCards]    = useState(makeCards);
   const [flipped,  setFlipped]  = useState([]); // indices of currently face-up unmatched cards
   const [moves,    setMoves]    = useState(0);
@@ -37,14 +37,14 @@ export default function MemoryGame({ onGameOver }) {
     return () => clearInterval(timerRef.current);
   }, [started, done]);
 
-  const hiScore = parseInt(localStorage.getItem("arco_memory_hi") || "0");
+  const hiScore = isGuest ? 0 : dbHiScore;
 
   function calcScore(moves, seconds) {
     return Math.max(0, 1000 - moves * 15 - seconds * 2);
   }
 
   function saveHiScore(score) {
-    if (score > hiScore) localStorage.setItem("arco_memory_hi", score);
+    if (!isGuest && score > hiScore) localStorage.setItem("arco_memory_hi", score);
   }
 
   function reset() {

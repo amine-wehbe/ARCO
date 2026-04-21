@@ -9,7 +9,7 @@ const H      = CELL * ROWS; // 528px
 // Wraps the original snake canvas game in a React component.
 // Props:
 //   onGameOver(score) — called when the player loses; wire to submitScore() in api/client.js
-export default function SnakeGame({ onGameOver }) {
+export default function SnakeGame({ onGameOver, isGuest, hiScore = 0 }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function SnakeGame({ onGameOver }) {
     let gameOver      = false;
     let gameStarted   = false;
     let score         = 0;
-    let highScore     = parseInt(localStorage.getItem("arco_snake_hi") || "0");
+    let highScore     = isGuest ? 0 : hiScore;
 
     let snake     = [{ x: 12, y: 11 }, { x: 11, y: 11 }, { x: 10, y: 11 }];
     let direction = { dx: 0, dy: 0 };
@@ -132,7 +132,7 @@ export default function SnakeGame({ onGameOver }) {
           if (gameOver) {
             if (score > highScore) {
               highScore = score;
-              localStorage.setItem("arco_snake_hi", highScore);
+              if (!isGuest) localStorage.setItem("arco_snake_hi", highScore);
             }
             onGameOver?.(score); // AWS_WIRE: hook up submitScore(score) here
           }

@@ -20,7 +20,7 @@ const BIRD_X = 80; // fixed horizontal position
 
 // Props:
 //   onGameOver(score) — AWS_WIRE: hook up submitScore("FLAPPY", score) in InGame.jsx
-export default function FlappyGame({ onGameOver }) {
+export default function FlappyGame({ onGameOver, isGuest, hiScore = 0 }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export default function FlappyGame({ onGameOver }) {
     let gameStarted = false;
     let gameOver    = false;
     let score       = 0;
-    let highScore   = parseInt(localStorage.getItem("arco_flappy_hi") || "0");
+    let highScore   = isGuest ? 0 : hiScore;
     let spawnTimer  = 0;
 
     // Bird (BirdScript)
@@ -79,7 +79,7 @@ export default function FlappyGame({ onGameOver }) {
       gameOver = true;
       if (score > highScore) {
         highScore = score;
-        localStorage.setItem("arco_flappy_hi", highScore);
+        if (!isGuest) localStorage.setItem("arco_flappy_hi", highScore);
       }
       onGameOver?.(score); // AWS_WIRE: submitScore("FLAPPY", score)
     }

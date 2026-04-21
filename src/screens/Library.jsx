@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { useKeyNav } from "../hooks/useKeyNav";
+import { fetchUserStats } from "../api/client";
 import CRT from "../components/CRT";
 import Bezel from "../components/Bezel";
 import Cabinet from "../components/Cabinet";
@@ -11,37 +12,38 @@ import ScreenHead from "../components/ScreenHead";
 //   [3] [4] [5=empty]
 
 const BASE_GAMES = [
-  { name: "SNAKE",      tag: "1P", hi: null },  // filled from localStorage
-  { name: "FLAPPY",     tag: "1P", hi: null },  // filled from localStorage
-  { name: "MEMORY",     tag: "1P", hi: null },  // filled from localStorage
-  { name: "BATTLESHIP", tag: "2P", hi: "---" }, // local 2P, WS_WIRE for online
+  { name: "SNAKE",      tag: "1P" },
+  { name: "FLAPPY",     tag: "1P" },
+  { name: "MEMORY",     tag: "1P" },
+  { name: "BATTLESHIP", tag: "2P" },
 ];
 const COLS = 3;
 const VALID = 5; // indices 0-4 are valid games
 
 export default function Library() {
-  const { tweaks, navigate, launchGame } = useApp();
-  const [selected, setSelected] = useState(0);
-  const getHi = key => parseInt(localStorage.getItem(key) || "0");
-  const fmtHi = n => n > 0 ? n.toLocaleString() : "---";
+  const { tweaks, navigate, launchGame, user, isAdmin } = useApp();
+  const [selected,   setSelected]   = useState(0);
+  const [userStats,  setUserStats]  = useState(null);
 
-  const [snakeHi,  setSnakeHi]  = useState(() => getHi("arco_snake_hi"));
-  const [flappyHi, setFlappyHi] = useState(() => getHi("arco_flappy_hi"));
-  const [memoryHi, setMemoryHi] = useState(() => getHi("arco_memory_hi"));
-
-  // Refresh all hi-scores each time Library mounts (returning from InGame)
+  // Fetch real best scores from DynamoDB for logged-in users
   useEffect(() => {
-    setSnakeHi(getHi("arco_snake_hi"));
-    setFlappyHi(getHi("arco_flappy_hi"));
-    setMemoryHi(getHi("arco_memory_hi"));
-  }, []);
+    if (!user || user.isGuest) { setUserStats(null); return; }
+    fetchUserStats(user.userId).then(setUserStats).catch(() => {});
+  }, [user?.userId]);
+
+  // Format hi score from DynamoDB best attrs — guests and errors show "---"
+  function fmtHi(game) {
+    if (!user || user.isGuest || !userStats) return "---";
+    const best = userStats["best_" + game.toLowerCase()];
+    return best > 0 ? best.toLocaleString() : "---";
+  }
 
   const games = [
-    { ...BASE_GAMES[0], hi: fmtHi(snakeHi) },
-    { ...BASE_GAMES[1], hi: fmtHi(flappyHi) },
-    { ...BASE_GAMES[2], hi: fmtHi(memoryHi) },
-    ...BASE_GAMES.slice(3),
-    { name: tweaks.g5, tag: "2P", hi: "21-14" },
+    { ...BASE_GAMES[0], hi: fmtHi("SNAKE") },
+    { ...BASE_GAMES[1], hi: fmtHi("FLAPPY") },
+    { ...BASE_GAMES[2], hi: fmtHi("MEMORY") },
+    { ...BASE_GAMES[3], hi: "---" },
+    { name: tweaks.g5, tag: "2P", hi: "---" },
   ];
   const current = games[selected];
 
@@ -69,7 +71,10 @@ export default function Library() {
     if (e.key === "ArrowUp")    { e.preventDefault(); moveRow(-1); }
     if (e.key === "ArrowDown")  { e.preventDefault(); moveRow(1); }
     if (e.key === "Enter")      { e.preventDefault(); launchGame(games[selected].name); }
-    if (e.key === "Escape")     { e.preventDefault(); navigate("landing"); }
+    if (e.key === "p" || e.key === "P") { e.preventDefault(); navigate("profile"); }
+    if (e.key === "l" || e.key === "L") { e.preventDefault(); navigate("leaderboard"); }
+    if (e.key === "s" || e.key === "S") { e.preventDefault(); navigate("settings"); }
+    if ((e.key === "a" || e.key === "A") && isAdmin) { e.preventDefault(); navigate("admin"); }
   }, [selected]);
 
   return (
@@ -94,15 +99,36 @@ export default function Library() {
           <Cabinet empty />
         </div>
 
-        <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "2px dashed var(--phos-dim)", paddingTop: 12 }}>
-          <div className="pixel phos" style={{ fontSize: 11 }}>
-            ▸ {current.name}  ·  {current.tag} PLAYERS  ·  HI {current.hi}
+        <div style={{ marginTop: "auto", borderTop: "2px dashed var(--phos-dim)", paddingTop: 12 }}>
+          {/* Game info + controls row */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div className="pixel phos" style={{ fontSize: 11 }}>
+              ▸ {current.name}  ·  {current.tag} PLAYERS  ·  HI {current.hi}
+            </div>
+            <div className="row">
+              <span className="kbd">← →</span><span className="muted">move</span>
+              <span className="kbd">↑ ↓</span><span className="muted">row</span>
+              <span className="kbd">ENTER</span><span className="muted">play</span>
+            </div>
           </div>
-          <div className="row">
-            <span className="kbd">← →</span><span className="muted">move</span>
-            <span className="kbd">↑ ↓</span><span className="muted">row</span>
-            <span className="kbd">ENTER</span><span className="muted">insert coin</span>
-            <span className="kbd">ESC</span><span className="muted">back</span>
+          {/* Nav row */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div className="row" style={{ gap: 6 }}>
+              <span className="pill" style={{ cursor: "pointer" }} onClick={() => navigate("profile")}>
+                <span className="kbd" style={{ fontSize: 9 }}>P</span> PROFILE
+              </span>
+              <span className="pill" style={{ cursor: "pointer" }} onClick={() => navigate("leaderboard")}>
+                <span className="kbd" style={{ fontSize: 9 }}>L</span> LEADERBOARD
+              </span>
+              <span className="pill" style={{ cursor: "pointer" }} onClick={() => navigate("settings")}>
+                <span className="kbd" style={{ fontSize: 9 }}>S</span> SETTINGS
+              </span>
+              {isAdmin && (
+                <span className="pill accent" style={{ cursor: "pointer" }} onClick={() => navigate("admin")}>
+                  <span className="kbd" style={{ fontSize: 9 }}>A</span> ADMIN
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </CRT>

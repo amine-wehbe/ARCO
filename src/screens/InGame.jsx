@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
-import { submitScore } from "../api/client";
+import { submitScore, fetchUserStats } from "../api/client";
 import { useKeyNav } from "../hooks/useKeyNav";
 import CRT from "../components/CRT";
 import Bezel from "../components/Bezel";
@@ -20,10 +20,10 @@ const GAME_META = {
   BATTLESHIP:  { label: "BATTLESHIP · 2P",  controls: <><span className="kbd">CLICK</span><span className="muted">place / fire</span><span className="kbd">R</span><span className="muted">rotate</span></> },
 };
 
-function GameSwitch({ name, onGameOver }) {
-  if (name === "SNAKE")      return <SnakeGame      onGameOver={onGameOver} />;
-  if (name === "FLAPPY")     return <FlappyGame     onGameOver={onGameOver} />;
-  if (name === "MEMORY")     return <MemoryGame     onGameOver={onGameOver} />;
+function GameSwitch({ name, onGameOver, isGuest, hiScore }) {
+  if (name === "SNAKE")      return <SnakeGame      onGameOver={onGameOver} isGuest={isGuest} hiScore={hiScore} />;
+  if (name === "FLAPPY")     return <FlappyGame     onGameOver={onGameOver} isGuest={isGuest} hiScore={hiScore} />;
+  if (name === "MEMORY")     return <MemoryGame     onGameOver={onGameOver} isGuest={isGuest} hiScore={hiScore} />;
   if (name === "BATTLESHIP") return <BattleshipGame onGameOver={onGameOver} />;
   return <GamePlaceholder name={name} />;
 }
@@ -31,8 +31,19 @@ function GameSwitch({ name, onGameOver }) {
 export default function InGame() {
   const { user, navigate, activeGame } = useApp();
   const playerName = user?.displayName ?? "GUEST_42";
-  const [lastScore, setLastScore] = useState(null);
+  const [lastScore,   setLastScore]   = useState(null);
+  const [hiScore,     setHiScore]     = useState(0);
+  const [statsReady,  setStatsReady]  = useState(false);
   const meta = GAME_META[activeGame] ?? { label: activeGame, controls: null };
+
+  // Fetch real best score from DynamoDB before mounting the game
+  useEffect(() => {
+    if (!user || user.isGuest) { setHiScore(0); setStatsReady(true); return; }
+    fetchUserStats(user.userId)
+      .then(data => setHiScore(data?.["best_" + activeGame.toLowerCase()] ?? 0))
+      .catch(() => setHiScore(0))
+      .finally(() => setStatsReady(true));
+  }, [user?.userId, activeGame]);
 
   // Q or ESC quits — Q disabled for Battleship since it uses keyboard internally
   useKeyNav(e => {
@@ -75,7 +86,10 @@ export default function InGame() {
           </div>
         </div>
 
-        <GameSwitch name={activeGame} onGameOver={handleGameOver} />
+        {statsReady
+          ? <GameSwitch name={activeGame} onGameOver={handleGameOver} isGuest={user?.isGuest ?? true} hiScore={hiScore} />
+          : <div style={{ flex: 1, display: "grid", placeItems: "center" }} className="muted pixel">LOADING...</div>
+        }
       </CRT>
     </>
   );
