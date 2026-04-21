@@ -6,21 +6,16 @@ import CRT from "../components/CRT";
 import Bezel from "../components/Bezel";
 import ScreenHead from "../components/ScreenHead";
 
-// AWS_WIRE: fetchUserStats() calls GET /users/{userId}/stats → DynamoDB
+// Hardcoded score ceilings used only for the visual bar width per game
+const GAME_MAX = { snake: 50000, flappy: 1000, memory: 5000, battleship: 500 };
 
-const MOCK_STATS = {
-  hours: "12.4", games: "147", wins: "62", streak: "5 DAYS",
-  perGame: [
-    ["SNAKE",   "8,420", "#14", 0.72],
-    ["FLAPPY",  "214",   "#07", 0.88],
-    ["MEMORY",  "00:42", "#03", 0.95],
-    ["TIC-TAC", "12-3",  "#22", 0.55],
-  ],
-};
+// Games shown in the profile per-game section
+const PROFILE_GAMES = ["snake", "flappy", "memory", "battleship"];
 
 export default function Profile() {
   const { user, tweaks, signOut, navigate } = useApp();
-  const [stats, setStats] = useState(MOCK_STATS);
+  const [userData,    setUserData]    = useState(null);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   useKeyNav(e => {
     if (e.key === "Escape") { e.preventDefault(); navigate("library"); }
@@ -31,15 +26,26 @@ export default function Profile() {
 
   useEffect(() => {
     if (!user || user.isGuest) return;
+    setLoadingStats(true);
     fetchUserStats(userId)
-      .then(data => { if (data?.perGame) setStats(data); })
-      .catch(() => { /* keep mock */ });
+      .then(data => setUserData(data))
+      .catch(() => {})
+      .finally(() => setLoadingStats(false));
   }, [userId]);
 
-  const perGame = [
-    ...stats.perGame,
-    [tweaks.g5, "—", "#—", 0],
-  ];
+  // Derive display values from real data, falling back to placeholders
+  const gamesPlayed = userData?.gamesPlayed ?? 0;
+  const level       = Math.floor(gamesPlayed / 5) + 1;
+
+  // Build per-game rows: [label, scoreStr, barFraction]
+  // Backend stores flat attrs: best_snake, best_flappy, best_memory, best_battleship
+  const perGame = PROFILE_GAMES.map(g => {
+    const best = userData?.["best_" + g];
+    const label = g.toUpperCase();
+    const scoreStr = best != null ? best.toLocaleString() : "—";
+    const bar = best != null ? Math.min(best / GAME_MAX[g], 1) : 0;
+    return [label, scoreStr, bar];
+  });
 
   return (
     <>
@@ -58,18 +64,21 @@ export default function Profile() {
                 <div className="pixel" style={{ fontSize: 18, color: "#fff" }}>{displayName}</div>
                 <div className="muted" style={{ fontSize: 14 }}>@{displayName.toLowerCase()} · id {userId}</div>
                 <div style={{ marginTop: 4 }}>
-                  <span className="pill accent">LVL 07</span>&nbsp;
-                  <span className="pill">BRONZE</span>
+                  <span className="pill accent">LVL {String(level).padStart(2, "0")}</span>&nbsp;
+                  <span className="pill">{level < 5 ? "BRONZE" : level < 15 ? "SILVER" : "GOLD"}</span>
                 </div>
               </div>
             </div>
 
             <div style={{ fontFamily: "'VT323'", fontSize: 17, marginTop: 10 }}>
               <div className="pixel phos" style={{ fontSize: 10, marginBottom: 8 }}>&gt; /stats</div>
-              <div className="bright">HOURS....... {stats.hours}</div>
-              <div className="bright">GAMES....... {stats.games}</div>
-              <div className="bright">WINS........ {stats.wins}</div>
-              <div className="bright">STREAK...... {stats.streak}</div>
+              {loadingStats
+                ? <div className="muted">LOADING...</div>
+                : <>
+                    <div className="bright">GAMES....... {gamesPlayed}</div>
+                    <div className="bright">LEVEL....... {level}</div>
+                  </>
+              }
               <div className="pink" style={{ marginTop: 8 }}>▌</div>
             </div>
           </div>
@@ -77,10 +86,9 @@ export default function Profile() {
           {/* Right: per-game bests */}
           <div className="col">
             <div className="label">PER-GAME BEST</div>
-            {perGame.map(([g, s, r, p]) => (
-              <div key={g} style={{ display: "grid", gridTemplateColumns: "80px 60px 1fr 70px", gap: 10, alignItems: "center", padding: "6px 0", borderBottom: "2px dashed var(--phos-dim)" }}>
+            {perGame.map(([g, s, p]) => (
+              <div key={g} style={{ display: "grid", gridTemplateColumns: "90px 1fr 80px", gap: 10, alignItems: "center", padding: "6px 0", borderBottom: "2px dashed var(--phos-dim)" }}>
                 <div className="pixel bright" style={{ fontSize: 10 }}>{g}</div>
-                <div className="pixel" style={{ fontSize: 10, color: "var(--phos)" }}>{r}</div>
                 <div className="bar"><span style={{ width: `${p * 100}%` }} /></div>
                 <div className="pixel" style={{ fontSize: 9, textAlign: "right" }}>{s}</div>
               </div>
