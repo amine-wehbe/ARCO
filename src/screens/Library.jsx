@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { useKeyNav } from "../hooks/useKeyNav";
+import { useClickSound } from "../hooks/useClickSound";
 import { fetchUserStats } from "../api/client";
 import CRT from "../components/CRT";
 import Bezel from "../components/Bezel";
@@ -22,6 +23,7 @@ const VALID = 5; // indices 0-4 are valid games
 
 export default function Library() {
   const { tweaks, navigate, launchGame, user, isAdmin } = useApp();
+  const playClick = useClickSound();
   const [selected,   setSelected]   = useState(0);
   const [userStats,  setUserStats]  = useState(null);
 
@@ -93,7 +95,7 @@ export default function Library() {
               key={g.name}
               {...g}
               selected={selected === i}
-              onClick={() => { setSelected(i); launchGame(games[i].name); }}
+              onClick={() => { playClick(); setSelected(i); launchGame(games[i].name); }}
             />
           ))}
           <Cabinet empty />
@@ -114,17 +116,17 @@ export default function Library() {
           {/* Nav row */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div className="row" style={{ gap: 6 }}>
-              <span className="pill" style={{ cursor: "pointer" }} onClick={() => navigate("profile")}>
+              <span className="pill" style={{ cursor: "pointer" }} onClick={() => { playClick(); navigate("profile"); }}>
                 <span className="kbd" style={{ fontSize: 9 }}>P</span> PROFILE
               </span>
-              <span className="pill" style={{ cursor: "pointer" }} onClick={() => navigate("leaderboard")}>
+              <span className="pill" style={{ cursor: "pointer" }} onClick={() => { playClick(); navigate("leaderboard"); }}>
                 <span className="kbd" style={{ fontSize: 9 }}>L</span> LEADERBOARD
               </span>
-              <span className="pill" style={{ cursor: "pointer" }} onClick={() => navigate("settings")}>
+              <span className="pill" style={{ cursor: "pointer" }} onClick={() => { playClick(); navigate("settings"); }}>
                 <span className="kbd" style={{ fontSize: 9 }}>S</span> SETTINGS
               </span>
               {isAdmin && (
-                <span className="pill accent" style={{ cursor: "pointer" }} onClick={() => navigate("admin")}>
+                <span className="pill accent" style={{ cursor: "pointer" }} onClick={() => { playClick(); navigate("admin"); }}>
                   <span className="kbd" style={{ fontSize: 9 }}>A</span> ADMIN
                 </span>
               )}

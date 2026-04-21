@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { useKeyNav } from "../hooks/useKeyNav";
+import { useClickSound } from "../hooks/useClickSound";
 import { fetchLeaderboard } from "../api/client";
 import { ADMIN_IDS } from "../config/admins";
 import CRT from "../components/CRT";
@@ -24,6 +25,7 @@ const PERIODS = ["TODAY", "WEEK", "ALL TIME"];
 
 export default function Leaderboard() {
   const { tweaks, navigate, user } = useApp();
+  const playClick = useClickSound();
   const GAMES = ["SNAKE", "FLAPPY", "MEMORY", "TIC-TAC", tweaks.g5];
 
   const [gameIdx,   setGameIdx]   = useState(0);
@@ -71,7 +73,7 @@ export default function Leaderboard() {
           right={
             <div className="row" style={{ gap: 6 }}>
               {GAMES.map((g, i) => (
-                <span key={g} className={"pill" + (gameIdx === i ? " accent" : "")} style={{ cursor: "pointer" }} onClick={() => setGameIdx(i)}>{g}</span>
+                <span key={g} className={"pill" + (gameIdx === i ? " accent" : "")} style={{ cursor: "pointer" }} onClick={() => { playClick(); setGameIdx(i); }}>{g}</span>
               ))}
             </div>
           }
@@ -113,7 +115,7 @@ export default function Leaderboard() {
         <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "2px dashed var(--phos-dim)", paddingTop: 12 }}>
           <div className="row" style={{ gap: 6 }}>
             {PERIODS.map((p, i) => (
-              <span key={p} className={"pill" + (periodIdx === i ? " accent" : "")} style={{ cursor: "pointer" }} onClick={() => setPeriodIdx(i)}>{p}</span>
+              <span key={p} className={"pill" + (periodIdx === i ? " accent" : "")} style={{ cursor: "pointer" }} onClick={() => { playClick(); setPeriodIdx(i); }}>{p}</span>
             ))}
           </div>
           <div className="row">

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { useKeyNav } from "../hooks/useKeyNav";
+import { useClickSound } from "../hooks/useClickSound";
 import CRT from "../components/CRT";
 import Bezel from "../components/Bezel";
 import ScreenHead from "../components/ScreenHead";
@@ -9,12 +10,14 @@ const MENU = ["PLAY AS GUEST", "SIGN IN", "CREATE ACCOUNT", "OPTIONS"];
 
 export default function Landing() {
   const { signInAsGuest, signIn, signUp, confirm, navigate, authError, setAuthError, pendingEmail } = useApp();
+  const playClick = useClickSound();
   const [cursor, setCursor] = useState(0);
   const [mode, setMode]     = useState("menu");
   const [form, setForm]     = useState({ username: "", password: "", email: "", code: "" });
   const [loading, setLoading] = useState(false);
 
   function handleSelect(i) {
+    playClick();
     if (i === 0) { signInAsGuest(); return; }
     if (i === 1) { setMode("signin"); setAuthError(null); return; }
     if (i === 2) { setMode("signup"); setAuthError(null); return; }
@@ -114,10 +117,10 @@ export default function Landing() {
             {field("password", "PASSWORD", "password")}
             {authError && <div className="pixel" style={{ fontSize: 8, color: "var(--pink)" }}>⚠ {authError}</div>}
             <div style={{ display: "flex", gap: 10 }}>
-              <button type="submit" className="btn primary" disabled={loading}>
+              <button type="submit" className="btn primary" disabled={loading} onClick={playClick}>
                 {loading ? "..." : mode === "signin" ? "SIGN IN" : "CREATE"}
               </button>
-              <button type="button" className="btn ghost" onClick={() => { setMode("menu"); setAuthError(null); }}>
+              <button type="button" className="btn ghost" onClick={() => { playClick(); setMode("menu"); setAuthError(null); }}>
                 BACK
               </button>
             </div>
@@ -138,7 +141,7 @@ export default function Landing() {
             {field("code", "VERIFICATION CODE")}
             {authError && <div className="pixel" style={{ fontSize: 8, color: "var(--pink)" }}>⚠ {authError}</div>}
             <div style={{ display: "flex", gap: 10 }}>
-              <button type="submit" className="btn primary" disabled={loading}>
+              <button type="submit" className="btn primary" disabled={loading} onClick={playClick}>
                 {loading ? "..." : "CONFIRM"}
               </button>
             </div>

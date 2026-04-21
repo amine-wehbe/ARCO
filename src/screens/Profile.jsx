@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { useKeyNav } from "../hooks/useKeyNav";
+import { useClickSound } from "../hooks/useClickSound";
 import { fetchUserStats, updateProfile } from "../api/client";
 import CRT from "../components/CRT";
 import Bezel from "../components/Bezel";
@@ -33,6 +34,7 @@ function getAvatar(id) {
 
 export default function Profile() {
   const { user, updateUser, signOut, navigate } = useApp();
+  const playClick = useClickSound();
   const [userData,     setUserData]     = useState(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [editing,      setEditing]      = useState(false);
@@ -166,7 +168,7 @@ export default function Profile() {
                       size={48}
                       initials={initials}
                       selected={editAvatar === av.id}
-                      onClick={() => setEditAvatar(av.id)}
+                      onClick={() => { playClick(); setEditAvatar(av.id); }}
                     />
                   ))}
                 </div>
@@ -175,10 +177,10 @@ export default function Profile() {
               {saveError && <div style={{ color: "var(--pink)", fontSize: 12 }}>{saveError}</div>}
 
               <div className="row" style={{ gap: 8, marginTop: 4 }}>
-                <button className="btn" onClick={handleSave} disabled={saving}>
+                <button className="btn" onClick={() => { playClick(); handleSave(); }} disabled={saving}>
                   {saving ? "SAVING..." : "SAVE"}
                 </button>
-                <button className="btn ghost" onClick={() => setEditing(false)}>CANCEL</button>
+                <button className="btn ghost" onClick={() => { playClick(); setEditing(false); }}>CANCEL</button>
               </div>
             </div>
           ) : (
@@ -237,9 +239,9 @@ export default function Profile() {
             {!editing && (
               user?.isGuest
                 ? <button className="btn ghost" disabled style={{ opacity: 0.4, cursor: "default" }}>EDIT</button>
-                : <button className="btn" onClick={openEdit}>EDIT</button>
+                : <button className="btn" onClick={() => { playClick(); openEdit(); }}>EDIT</button>
             )}
-            <button className="btn" onClick={signOut}>SIGN OUT</button>
+            <button className="btn" onClick={() => { playClick(); signOut(); }}>SIGN OUT</button>
           </div>
         </div>
       </CRT>

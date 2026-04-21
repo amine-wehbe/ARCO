@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { useKeyNav } from "../hooks/useKeyNav";
+import { useClickSound } from "../hooks/useClickSound";
 import CRT from "../components/CRT";
 import Bezel from "../components/Bezel";
 import ScreenHead from "../components/ScreenHead";
@@ -12,7 +13,7 @@ const MUSIC_LABELS  = { "8BIT": "8-BIT TUNE", "ARCADE": "ARCADE FUN", "CELL THEM
 
 export default function Settings() {
   const { tweaks, setTweaks, navigate, prevScreen, signOut, user } = useApp();
-  const [sound,  setSound]  = useState("ON");
+  const playClick = useClickSound();
   const [cursor, setCursor] = useState(0);
 
   // Flat list of interactive items (sections are skipped in the handler)
@@ -21,11 +22,12 @@ export default function Settings() {
     { label: "EMAIL",         value: user?.email       ?? "—",      action: null },
     { label: "SIGN OUT",      value: "▸",                           action: signOut },
     { label: "MUSIC",         value: `◂  ${MUSIC_LABELS[tweaks.music]}  ▸`, toggle: () => setTweaks({ music: MUSIC_OPTIONS[(MUSIC_OPTIONS.indexOf(tweaks.music) + 1) % MUSIC_OPTIONS.length] }) },
-    { label: "SOUND",         value: `◂  ${sound}  ▸`,             toggle: () => setSound(s => s === "ON" ? "OFF" : "ON") },
+    { label: "SOUND",         value: `◂  ${tweaks.sound}  ▸`,      toggle: () => setTweaks({ sound: tweaks.sound === "ON" ? "OFF" : "ON" }) },
     { label: "CRT SCANLINES", value: `◂  ${tweaks.scan.toUpperCase()}  ▸`, toggle: () => setTweaks({ scan: tweaks.scan === "on" ? "off" : "on" }) },
   ];
 
   function activate(i) {
+    playClick();
     const item = items[i];
     if (item.action) { item.action(); return; }
     if (item.toggle) item.toggle();
@@ -83,7 +85,7 @@ export default function Settings() {
             <span className="kbd">ENTER</span><span className="muted">confirm</span>
             <span className="kbd">ESC</span><span className="muted">back</span>
           </div>
-          <button className="btn" onClick={() => navigate(prevScreen)}>SAVE &amp; BACK</button>
+          <button className="btn" onClick={() => { playClick(); navigate(prevScreen); }}>SAVE &amp; BACK</button>
         </div>
       </CRT>
     </>
