@@ -87,6 +87,9 @@ export async function submitScore(game, score) {
   return post("/scores", { gameId: game.toLowerCase(), score });
 }
 
-// ── Admin (not implemented) ────────────────────────────────────────────────
-export async function fetchAdminMetrics() { return { metrics: [] }; }
-export async function fetchAdminAlerts()  { return { alerts: [] }; }
+// ── Admin ──────────────────────────────────────────────────────────────────
+
+// Fetch platform stats — admin only, returns totalUsers + per-game data
+export async function fetchAdminStats() {
+  return get("/admin/stats");
+}
