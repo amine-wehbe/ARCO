@@ -218,6 +218,4 @@ The Elastic IP (54.195.242.3) stays the same across stop/start, so CloudFront do
 ---
 
 ## Team
-
-- **Amine Wehbe** — project lead, full-stack, AWS setup
-- AUB EECE Final Year Project
+- AUB CS Final Year Project
