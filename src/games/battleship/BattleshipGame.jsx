@@ -326,7 +326,7 @@ export default function BattleshipGame({ onGameOver }) {
       <div className="pixel-title" style={{ fontSize: 16 }}>BATTLESHIP ONLINE</div>
       {error && <div className="pixel" style={{ fontSize: 8, color: "var(--pink)" }}>⚠ {error}</div>}
 
-      <button className="btn primary" style={{ width: 220 }} onClick={createRoom}>
+      <button className="btn primary" onClick={createRoom}>
         CREATE GAME
       </button>
 
