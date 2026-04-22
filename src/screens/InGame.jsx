@@ -17,7 +17,7 @@ const GAME_META = {
   SNAKE:       { label: "SNAKE · 1P",       controls: <><span className="kbd">↑↓←→</span><span className="muted">move</span></> },
   FLAPPY:      { label: "FLAPPY · 1P",      controls: <><span className="kbd">SPACE</span><span className="muted">flap</span></> },
   MEMORY:      { label: "MEMORY · 1P",      controls: <><span className="kbd">CLICK</span><span className="muted">flip card</span></> },
-  BATTLESHIP:  { label: "BATTLESHIP · 2P",  controls: <><span className="kbd">CLICK</span><span className="muted">place / fire</span><span className="kbd">R</span><span className="muted">rotate</span></> },
+  BATTLESHIP:  { label: "BATTLESHIP · 2P",  controls: null },
 };
 
 function GameSwitch({ name, onGameOver, isGuest, hiScore }) {
