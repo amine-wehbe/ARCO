@@ -161,7 +161,7 @@ export default function Landing() {
             <span className="muted">navigate · select</span>
           </div>
           <span className="muted pixel" style={{ fontSize: 8 }}>
-            ● {platformStats ? `${platformStats.totalUsers.toLocaleString()} PLAYERS` : "— PLAYERS"} · HI {platformStats ? platformStats.globalHi.toLocaleString() : "—"} · © 2026
+            ● {platformStats ? `${platformStats.totalUsers.toLocaleString()} PLAYERS` : "— PLAYERS"} · © 2026
           </span>
         </div>
       </CRT>
