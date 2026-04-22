@@ -61,7 +61,7 @@ export default function InGame() {
       // score is 1 for win, 0 for loss — submit 1 to increment gamesPlayed, no leaderboard impact
       setBsTotal(t => t + 1);
       if (score) setBsWins(w => w + 1);
-      if (user && !user.isGuest) {
+      if (user && !user.isGuest && score) {
         submitScore(activeGame, 1).catch(err => console.error("submitScore failed:", err));
       }
       return;
