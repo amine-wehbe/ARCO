@@ -58,9 +58,12 @@ export default function InGame() {
 
   function handleGameOver(score) {
     if (isBattleship) {
-      // score is 1 for win, 0 for loss — no DynamoDB submission
+      // score is 1 for win, 0 for loss — submit 1 to increment gamesPlayed, no leaderboard impact
       setBsTotal(t => t + 1);
       if (score) setBsWins(w => w + 1);
+      if (user && !user.isGuest) {
+        submitScore(activeGame, 1).catch(err => console.error("submitScore failed:", err));
+      }
       return;
     }
     setLastScore(score);

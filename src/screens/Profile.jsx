@@ -11,7 +11,8 @@ import ScreenHead from "../components/ScreenHead";
 const GAME_MAX = { snake: 50000, flappy: 1000, memory: 5000, battleship: 500 };
 
 // Games shown in the profile per-game section
-const PROFILE_GAMES = ["snake", "flappy", "memory", "battleship"];
+// Battleship excluded — no meaningful high score metric
+const PROFILE_GAMES = ["snake", "flappy", "memory"];
 
 // 10 pixel avatar color schemes — stored by id in DynamoDB
 const AVATARS = [
