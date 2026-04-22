@@ -15,9 +15,10 @@ const attachSocket = require("./socket");
 const app    = express();
 const server = http.createServer(app);
 
+// ALLOWED_ORIGIN env var lets any CloudFront domain work without hardcoding it
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
-  "https://dmlg1bi4iczn7.cloudfront.net",
+  ...(process.env.ALLOWED_ORIGIN ? [process.env.ALLOWED_ORIGIN] : []),
 ];
 
 app.use(cors({
