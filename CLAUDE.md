@@ -6,7 +6,7 @@ Use this to get up to speed on the project before helping.
 
 ## What is ARCO?
 
-Retro arcade web app. React + Vite SPA with 4 games, AWS backend. Styled like a CRT arcade cabinet. No top navigation — all navigation is in-screen via keyboard shortcuts and buttons.
+Retro arcade web app. React + Vite SPA with 4 games, AWS backend. Styled like a CRT arcade cabinet. Navigation lives in the Library Bezel top bar (P/L/S/A pills) and via keyboard shortcuts — no global nav bar.
 
 **Live URL:** https://dmlg1bi4iczn7.cloudfront.net  
 **GitHub:** https://github.com/amine-wehbe/ARCO
@@ -66,12 +66,16 @@ arco/
 │       ├── memory/            # Memory card matching (React)
 │       └── battleship/        # Local 2-player Battleship (React)
 ├── server/
-│   ├── index.js               # Express entry, CORS, mounts all routes
+│   ├── index.js               # Express entry, http.createServer, socket.io attach, mounts all routes
+│   ├── socket.js              # All socket.io event handlers (Battleship multiplayer)
+│   ├── game.js                # Pure Battleship logic (validate placement, hits, win condition)
+│   ├── rooms.js               # In-memory room store (ephemeral, lost on restart)
 │   ├── middleware/auth.js     # Cognito JWT verify → req.userId, req.username
 │   ├── routes/auth.js         # POST /auth/signup, /confirm, /login, /logout
 │   ├── routes/scores.js       # POST /scores, GET /scores/:gameId
 │   ├── routes/users.js        # POST /users, GET /users/:id, PATCH /users/:id
 │   ├── routes/admin.js        # GET /admin/stats — requireAdmin middleware, server-side gated
+│   ├── routes/stats.js        # GET /stats — public, returns totalUsers + globalHi
 │   └── db/dynamo.js           # DynamoDB DocumentClient
 ├── .env                       # VITE_API_BASE_URL (not committed)
 └── .env.example
@@ -162,18 +166,18 @@ GSI: gameId-score-index (gameId PK, score SK) — used for leaderboard queries
 
 ---
 
-## Navigation (no top nav bar)
+## Navigation
 
 | Screen | How to get there |
 |---|---|
 | Library | After login, or ESC from any screen |
-| Profile | P key or pill in Library |
-| Leaderboard | L key or pill in Library |
-| Settings | S key or pill in Library; ESC returns to prevScreen |
-| Admin | A key or pill in Library (admins only) |
+| Profile | P key or pill in Library Bezel (top bar) |
+| Leaderboard | L key or pill in Library Bezel (top bar) |
+| Settings | S key or pill in Library Bezel (top bar); ESC returns to prevScreen |
+| Admin | A key or pill in Library Bezel (admins only) |
 | In-game | ENTER on a cabinet in Library |
 
-`prevScreen` is tracked in AppContext so Settings/etc. always return to where you came from.
+Nav pills live in the Library Bezel top-right. `prevScreen` tracked in AppContext so Settings/etc. always return to where you came from.
 
 ---
 
@@ -183,6 +187,8 @@ GSI: gameId-score-index (gameId PK, score SK) — used for leaderboard queries
 - Level derived via triangular progression: level N needs N games (total to reach level N = N*(N-1)/2)
 - Level progress bar shown under badges
 - Badge tiers: BRONZE (lvl < 5), SILVER (lvl < 15), GOLD (lvl ≥ 15)
+- Per-game best: SNAKE, FLAPPY, MEMORY only (Battleship excluded — no meaningful score metric)
+- Per-game shows name + score only, no progress bar
 - EDIT mode: change username + pick from 10 pixel avatar color schemes
 - Avatar stored as id "1"–"10" in DynamoDB, color map in Profile.jsx
 - Guests: EDIT button visible but disabled
@@ -200,10 +206,12 @@ GSI: gameId-score-index (gameId PK, score SK) — used for leaderboard queries
 
 ## CloudFront Behaviors (in order)
 
+- `/socket.io*` → EC2 (WebSocket handshake + upgrade)
 - `/auth*` → EC2
 - `/scores*` → EC2
 - `/users*` → EC2
 - `/admin*` → EC2
+- `/stats*` → EC2
 - `/health` → EC2
 - `/*` (default) → S3
 
@@ -250,19 +258,28 @@ Elastic IP stays the same — CloudFront needs no update.
 
 **Fully working:**
 - Auth flow (signup → email confirm → login → logout)
-- Score submission on game over for all 4 games
+- Score submission on game over (Snake, Flappy, Memory only — Battleship excluded)
 - Leaderboard with real DynamoDB data + ADMIN badge
-- Profile: real stats, level progression, avatar picker, EDIT mode
-- Settings: music, sound (Web Audio API beep), CRT scanlines, back to prevScreen
+- Profile: real stats, level progression, avatar picker, EDIT mode, per-game best (no bars)
+- Settings: music track, music volume (← → to adjust, persisted), sound toggle, CRT scanlines
 - Admin dashboard: real EC2 health, user count, score count, per-game top scores (admin-only)
-- Library: keyboard nav (P/L/S/A), hi scores from DynamoDB
+- Library: keyboard nav (P/L/S/A), nav pills in Bezel top bar, hi scores from DynamoDB
 - In-game hi scores from DynamoDB, guests see nothing
+- Battleship: shows GAMES WON X/Y in header; only winner gets gamesPlayed incremented
 - Landing footer: real player count from DynamoDB via public GET /stats
 - UI click sound effects wired across all screens, toggled via Settings
 - Battleship online multiplayer via socket.io (phases: lobby → placement → playing → gameover)
+- Reconnect: 60s grace period, roomCode + board restored on rejoin
+
+**Scaling notes:**
+- t3.micro handles ~300 concurrent users
+- t3.medium handles ~1,200 concurrent users
+- Vertical scaling (change instance type) is the right move before ASG
+- ASG requires Redis (ElastiCache) to share in-memory room store across instances — not currently implemented
+- ASG not needed until sustained CPU > 70% or memory errors in PM2 logs
 
 **Pending / stretch goals:**
-- Auto Scaling Group + ALB (teammate working on this)
+- ASG + ALB (only if needed at scale — requires Redis for room store)
 
 ---
 
@@ -273,7 +290,8 @@ Elastic IP stays the same — CloudFront needs no update.
 - **CloudFront:** `/socket.io*` behavior routes to EC2 for the WS handshake
 - **Frontend:** `src/api/socket.js` (singleton), `src/games/battleship/BattleshipGame.jsx` (phases)
 - **Reconnect:** `arco_bs_session` in localStorage → `rejoin-room` event → 60s grace period on server
-- **Score:** winner submits 100 pts to DynamoDB via existing submitScore()
+- **Score:** both players submit score=1 to increment gamesPlayed (winner only gets the increment); no leaderboard entry for Battleship
+- **InGame header:** shows GAMES WON X/Y instead of LAST SCORE for Battleship
 
 ### Socket Events
 | Client → Server | Description |
