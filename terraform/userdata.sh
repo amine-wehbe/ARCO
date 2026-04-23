@@ -37,7 +37,7 @@ rm -rf ARCO
 git clone https://github.com/amine-wehbe/ARCO.git ARCO
 
 cd /home/ec2-user/ARCO/server
-cp /home/ec2-user/.arco_env .env
+cp /home/ec2-user/.arco_env /home/ec2-user/ARCO/server/.env
 npm install
 pm2 start index.js --name arco-server
 pm2 save
