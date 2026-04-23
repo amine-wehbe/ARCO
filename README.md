@@ -29,7 +29,7 @@ A retro-styled arcade web app with 4 games, AWS-backed auth, leaderboards, and u
 
 ## Project Structure
 
-```
+```bash
 arco/
 ├── src/
 │   ├── api/client.js          # All API calls
@@ -51,24 +51,36 @@ arco/
 
 ### Prerequisites
 - Node.js 18+
-- AWS account with Cognito User Pool + DynamoDB tables created (see below)
+- AWS account with Cognito User Pool + DynamoDB tables created
 
 ### Frontend
 
+Create a `.env` file in the **ARCO root folder** and add:
+
 ```bash
-cp .env.example .env
-# Edit .env: set VITE_API_BASE_URL=http://localhost:3000 for local dev
+VITE_API_BASE_URL=https://d2v50zdvw94jj6.cloudfront.net
+```
+
+Then run:
+
+```bash
 npm install
 npm run dev
 # → http://localhost:5173
 ```
+
+> For local-only frontend testing against a local backend, you can instead use:
+>
+> ```bash
+> VITE_API_BASE_URL=http://localhost:3000
+> ```
 
 ### Backend
 
 ```bash
 cd server
 cp .env.example .env
-# Edit .env with your Cognito and AWS values (see below)
+# Edit .env with your Cognito and AWS values
 npm install
 npm run dev
 # → http://localhost:3000
@@ -76,14 +88,14 @@ npm run dev
 
 **server/.env values:**
 
-```
+```bash
 PORT=3000
 AWS_REGION=eu-west-1
 COGNITO_USER_POOL_ID=<your-user-pool-id>
 COGNITO_CLIENT_ID=<your-app-client-id>
 ```
 
-> Remove `DYNAMO_ENDPOINT` line for real DynamoDB (keep it only for local DynamoDB emulator).
+> Remove `DYNAMO_ENDPOINT` for real DynamoDB. Keep it only for a local DynamoDB emulator.
 
 ---
 
@@ -96,19 +108,19 @@ COGNITO_CLIENT_ID=<your-app-client-id>
 3. Required attributes: `email`, `preferred_username`
 4. App client type: **Single Page Application (SPA)**
 5. Auth flow: enable `ALLOW_USER_PASSWORD_AUTH`
-6. Copy User Pool ID and App Client ID → paste into `server/.env`
+6. Copy the **User Pool ID** and **App Client ID** into `server/.env`
 
 ### 2. DynamoDB Tables
 
 **arco-users**
-```
+```bash
 Table name: arco-users
 Partition key: userId (String)
 Billing: On-demand
 ```
 
 **arco-scores**
-```
+```bash
 Table name: arco-scores
 Partition key: gameId (String)
 Sort key: sk (String)
@@ -126,7 +138,7 @@ Create role `arco-ec2-role` with:
 - `AmazonDynamoDBFullAccess`
 - `AmazonCognitoPowerUser`
 
-Attach to EC2 instance.
+Attach it to the EC2 instance.
 
 ### 4. EC2 Backend
 
@@ -135,51 +147,107 @@ Attach to EC2 instance.
 sudo dnf install -y nodejs npm
 sudo npm install -g pm2
 
-# Upload server/ folder (from your machine)
+# Upload server/ folder from your machine
 scp -i ~/.ssh/arco-key.pem -r server/ ec2-user@<EC2-IP>:~/
 
 # On EC2
 cd ~/server
-cp .env.example .env    # fill in values
+cp .env.example .env
+# Fill in real values
 npm install
 pm2 start index.js --name arco-server
 pm2 save
-pm2 startup            # follow the printed command to auto-start on reboot
+pm2 startup
+# Follow the printed command so PM2 starts on reboot
 ```
 
 ### 5. Frontend Deploy
 
-```bash
-# In project root
-npm run build
+Before building, create a `.env` file in the project root:
 
-# Push dist/ to S3
+```bash
+VITE_API_BASE_URL=https://d2v50zdvw94jj6.cloudfront.net
+```
+
+Then:
+
+```bash
+npm install
+npm run build
 aws s3 sync dist/ s3://<your-bucket-name> --delete
 ```
 
 ### 6. CloudFront
 
-Create distribution:
+Create a distribution with:
 - **Origin 1** — S3 bucket (default)
-- **Origin 2** — `<EC2-IP>.nip.io` port 3000 (HTTP)
+- **Origin 2** — `<EC2-IP>.nip.io` on port 3000 (HTTP)
 
-Add behaviors (in order):
+Add behaviors in this order:
 - `/auth*` → EC2 origin
 - `/scores*` → EC2 origin
 - `/users*` → EC2 origin
 - `/health` → EC2 origin
-- `/*` (default) → S3 origin
+- `/*` → S3 origin
 
-After any config change, create a CloudFront invalidation: `/*`
+After config changes, create a CloudFront invalidation for:
+
+```bash
+/*
+```
+
+---
+
+## Terraform Frontend Provisioner Fix (Windows)
+
+If you are using Terraform on **Windows**, the `local-exec` provisioner must use **bash** explicitly.
+
+With the default Windows `cmd` shell, a script containing:
+
+```bash
+set -e
+```
+
+can fail with:
+
+```bash
+Environment variable -e not defined
+```
+
+Use this instead in your Terraform provisioner:
+
+```hcl
+provisioner "local-exec" {
+  interpreter = ["bash", "-lc"]
+  command = <<-EOT
+    set -e
+    echo "VITE_API_BASE_URL=https://${aws_cloudfront_distribution.arco.domain_name}" > .env
+    npm install
+    npm run build
+    aws s3 sync dist/ s3://${aws_s3_bucket.frontend.bucket} --delete
+    aws cloudfront create-invalidation --distribution-id ${aws_cloudfront_distribution.arco.id} --paths "/*"
+  EOT
+}
+```
+
+> This requires **Git Bash** or another bash shell installed and available in `PATH`.
+
+If you do not want Terraform writing the frontend `.env`, create it manually in the ARCO root folder with:
+
+```bash
+VITE_API_BASE_URL=https://d2v50zdvw94jj6.cloudfront.net
+```
+
+before running `npm run build`.
 
 ---
 
 ## API Reference
 
-Base URL is the CloudFront domain (or `http://localhost:3000` locally).
+Base URL is the CloudFront domain, or `http://localhost:3000` locally.
 
 ### Auth
-```
+```bash
 POST /auth/signup    { email, password, username }
 POST /auth/confirm   { email, code }
 POST /auth/login     { email, password }  → { token }
@@ -187,14 +255,19 @@ POST /auth/logout    (Bearer token)
 ```
 
 ### Scores
-```
+```bash
 POST /scores         (Bearer) { gameId, score }
 GET  /scores/:gameId          → { leaderboard: [...] }
 ```
-Valid gameIds: `snake`, `flappy`, `memory`, `battleship`
+
+Valid `gameId` values:
+- `snake`
+- `flappy`
+- `memory`
+- `battleship`
 
 ### Users
-```
+```bash
 POST  /users         (Bearer) { username }
 GET   /users/:id     (Bearer) → user object
 PATCH /users/:id     (Bearer) { username?, avatar? }
@@ -204,18 +277,38 @@ PATCH /users/:id     (Bearer) { username?, avatar? }
 
 ## Restarting the EC2 Instance
 
-If the instance was stopped (e.g. to save costs):
+If the instance was stopped:
 
-1. AWS Console → EC2 → Instances → select → **Start instance**
-2. Wait ~30s for boot
-3. SSH in: `ssh -i ~/.ssh/arco-key.pem ec2-user@54.195.242.3`
-4. Check server: `pm2 status`
-5. If stopped: `pm2 restart arco-server`
-6. Verify: `curl http://localhost:3000/health`
+1. AWS Console → EC2 → Instances → select instance → **Start instance**
+2. Wait about 30 seconds
+3. SSH in:
 
-The Elastic IP (54.195.242.3) stays the same across stop/start, so CloudFront doesn't need to be updated.
+```bash
+ssh -i ~/.ssh/arco-key.pem ec2-user@54.195.242.3
+```
+
+4. Check server status:
+
+```bash
+pm2 status
+```
+
+5. If needed, restart:
+
+```bash
+pm2 restart arco-server
+```
+
+6. Verify locally on the instance:
+
+```bash
+curl http://localhost:3000/health
+```
+
+The Elastic IP stays the same across stop/start, so CloudFront does not need to be updated.
 
 ---
 
 ## Team
+
 - AUB CS Final Year Project
