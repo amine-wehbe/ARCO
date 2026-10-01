@@ -7,7 +7,6 @@ dist/
 
 # Terraform generated files — never commit state or private keys
 terraform/.terraform/
-terraform/.terraform.lock.hcl
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 terraform/arco-key.pem
