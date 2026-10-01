@@ -17,25 +17,31 @@ resource "local_file" "private_key" {
   file_permission = "0600"
 }
 
-# Security group — SSH for management, port 3000 for CloudFront → EC2 traffic
+# AWS-managed list of CloudFront's origin-facing IP ranges
+data "aws_ec2_managed_prefix_list" "cloudfront" {
+  name = "com.amazonaws.global.cloudfront.origin-facing"
+}
+
+# Security group — SSH only from your IP, app port only reachable through CloudFront
 resource "aws_security_group" "ec2" {
   name        = "${var.project}-ec2-sg"
   description = "ARCO EC2 - SSH (22) and app (3000)"
 
   ingress {
-    description = "SSH"
+    description = "SSH (restricted to var.ssh_cidr)"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.ssh_cidr]
   }
 
+  # Without this restriction anyone could hit :3000 directly and bypass CloudFront
   ingress {
-    description = "Node.js app"
-    from_port   = 3000
-    to_port     = 3000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "Node.js app - CloudFront only"
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
   }
 
   egress {
@@ -48,14 +54,15 @@ resource "aws_security_group" "ec2" {
   tags = { Name = "${var.project}-ec2-sg" }
 }
 
-# Latest Amazon Linux 2 AMI in the target region
-data "aws_ami" "amazon_linux_2" {
+# Latest Amazon Linux 2023 AMI — needed for Node 20 (Amazon Linux 2's glibc tops out at Node 16,
+# but the pinned AWS SDK v3 packages require Node >= 20)
+data "aws_ami" "amazon_linux_2023" {
   most_recent = true
   owners      = ["amazon"]
 
   filter {
     name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+    values = ["al2023-ami-2023.*-x86_64"]
   }
 }
 
@@ -68,7 +75,7 @@ resource "aws_eip" "ec2" {
 
 # EC2 instance — user_data installs Node/PM2, clones the repo, and starts the server
 resource "aws_instance" "arco" {
-  ami                  = data.aws_ami.amazon_linux_2.id
+  ami                  = data.aws_ami.amazon_linux_2023.id
   instance_type        = var.instance_type
   key_name             = aws_key_pair.arco.key_name
   iam_instance_profile = aws_iam_instance_profile.ec2.name

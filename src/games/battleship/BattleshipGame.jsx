@@ -130,7 +130,7 @@ function Grid({ board, shots = emptyShots(), mode, hoverCells, onCellClick, onCe
 // Phases: lobby | waiting | placement | waiting-ready | playing | gameover
 export default function BattleshipGame({ onGameOver }) {
   const { user } = useApp();
-  const userId   = user?.userId ?? "guest";
+  const userId   = user?.userId ?? "guest";   // only used to key the local reconnect session
   const username = user?.displayName ?? "GUEST";
 
   const [phase,               setPhase]               = useState("lobby");
@@ -152,8 +152,11 @@ export default function BattleshipGame({ onGameOver }) {
 
   // ── Socket setup ────────────────────────────────────────────────────────────
   useEffect(() => {
-    const socket = getSocket();
+    const socket = getSocket(username);
     socket.connect();
+
+    // Handshake rejected (e.g. expired login) — surface it instead of failing silently
+    socket.on("connect_error", () => setError("CONNECTION FAILED — TRY SIGNING IN AGAIN"));
 
     socket.on("room-created", ({ roomCode: code }) => {
       setRoomCode(code);
@@ -187,7 +190,7 @@ export default function BattleshipGame({ onGameOver }) {
       setPhase(p);
     });
 
-    socket.on("rejoin-failed", () => { clearSession(); setPhase("lobby"); });
+    socket.on("rejoin-failed", () => { clearSession(userId); setPhase("lobby"); });
 
     socket.on("placement-confirmed", () => setPhase("waiting-ready"));
 
@@ -214,7 +217,7 @@ export default function BattleshipGame({ onGameOver }) {
       if (gameOver) {
         setWon(didWin);
         setPhase("gameover");
-        clearSession();
+        clearSession(userId);
         onGameOver?.(didWin ? 1 : 0);
       } else {
         setIsMyTurn(!!yourTurn);
@@ -222,7 +225,10 @@ export default function BattleshipGame({ onGameOver }) {
     });
 
     socket.on("opponent-disconnected", () => setDisconnected(true));
-    socket.on("opponent-reconnected",  () => setDisconnected(false));
+    socket.on("opponent-reconnected",  ({ yourTurn } = {}) => {
+      setDisconnected(false);
+      if (yourTurn !== undefined) setIsMyTurn(yourTurn);
+    });
     socket.on("opponent-wants-rematch",() => setOpponentWantsRematch(true));
 
     socket.on("rematch-start", () => {
@@ -234,14 +240,14 @@ export default function BattleshipGame({ onGameOver }) {
 
     socket.on("error", ({ message }) => setError(message));
 
-    // Try to rejoin a previous session on mount
-    const session = loadSession();
-    if (session) socket.emit("rejoin-room", { roomCode: session.roomCode, userId: session.userId });
+    // Try to rejoin a previous session on mount — only if it belongs to this user
+    const session = loadSession(userId);
+    if (session) socket.emit("rejoin-room", { roomCode: session.roomCode });
 
     return () => {
       socket.removeAllListeners();
       destroySocket();
-      clearSession();
+      clearSession(userId);
     };
   }, []);
 
@@ -255,13 +261,13 @@ export default function BattleshipGame({ onGameOver }) {
   // ── Actions ─────────────────────────────────────────────────────────────────
   function createRoom() {
     setError(null);
-    getSocket().emit("create-room", { userId, username });
+    getSocket().emit("create-room");
   }
 
   function joinRoom() {
     if (!inputCode.trim()) return;
     setError(null);
-    getSocket().emit("join-room", { roomCode: inputCode.trim().toUpperCase(), userId, username });
+    getSocket().emit("join-room", { roomCode: inputCode.trim().toUpperCase() });
   }
 
   function handlePlaceClick(r, c) {
@@ -274,22 +280,22 @@ export default function BattleshipGame({ onGameOver }) {
       setShipIdx(shipIdx + 1);
     } else {
       // All placed — send to server
-      getSocket().emit("place-ships", { roomCode, userId, ships: boardToShips(newBoard) });
+      getSocket().emit("place-ships", { roomCode, ships: boardToShips(newBoard) });
     }
   }
 
   function handleFireClick(r, c) {
     if (!isMyTurn || myShots[r][c].fired) return;
-    getSocket().emit("attack", { roomCode, userId, r, c });
+    getSocket().emit("attack", { roomCode, r, c });
   }
 
   function requestRematch() {
     setOpponentWantsRematch(false);
-    getSocket().emit("rematch", { roomCode, userId });
+    getSocket().emit("rematch", { roomCode });
   }
 
   function backToLobby() {
-    clearSession();
+    clearSession(userId);
     setPhase("lobby");
     setRoomCode(""); setInputCode(""); setOpponentUsername("");
     setMyBoard(emptyBoard()); setMyShots(emptyShots()); setOpponentShots(emptyShots());

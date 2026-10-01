@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { cognitoSignIn, cognitoSignUp, cognitoConfirm, cognitoSignOut, createUserProfile } from "../api/client";
+import { cognitoSignIn, cognitoSignUp, cognitoConfirm, cognitoSignOut, createUserProfile, getGuestId } from "../api/client";
 import { ADMIN_IDS } from "../config/admins";
 
 const Ctx = createContext(null);
@@ -16,6 +16,23 @@ export function AppProvider({ children }) {
   const [tweaks, setTweaksState]    = useState(DEFAULT_TWEAKS);
   const [authError, setAuthError]   = useState(null);
   const [pendingEmail, setPendingEmail] = useState(null); // set after signup, cleared after confirm
+
+  // Restore auth session from stored JWT on page refresh — skip sign-in if token is still valid
+  useEffect(() => {
+    const token = localStorage.getItem("arco_id_token");
+    if (!token) return;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        localStorage.removeItem("arco_id_token");
+        return;
+      }
+      setUser({ userId: payload.sub, displayName: payload.preferred_username || payload.email, email: payload.email, isGuest: false });
+      setScreen("library");
+    } catch {
+      localStorage.removeItem("arco_id_token");
+    }
+  }, []);
 
   // Apply tweaks as CSS custom properties
   useEffect(() => {
@@ -40,7 +57,7 @@ export function AppProvider({ children }) {
   }
 
   async function signInAsGuest() {
-    setUser({ userId: "guest", displayName: "GUEST_" + Math.floor(Math.random() * 900 + 100), isGuest: true });
+    setUser({ userId: "guest:" + getGuestId(), displayName: "GUEST_" + Math.floor(Math.random() * 900 + 100), isGuest: true });
     navigate("library");
   }
 

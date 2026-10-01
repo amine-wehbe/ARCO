@@ -105,7 +105,7 @@ function Battleship() {
       {misses.map(([c, r], i) => (
         <circle key={i} cx={c*14+10} cy={r*10+8} r="3" fill="none" stroke={G} strokeWidth="1.5" />
       ))}
-      <text x="4" y="57" fontFamily="monospace" fontSize="6" fill={G}>2P · LOCAL</text>
+      <text x="4" y="57" fontFamily="monospace" fontSize="6" fill={G}>2P · ONLINE</text>
     </svg>
   );
 }

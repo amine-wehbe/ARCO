@@ -17,6 +17,9 @@ router.post("/signup", async (req, res) => {
   if (!email || !password || !username) {
     return res.status(400).json({ error: "email, password and username are required" });
   }
+  if (!/^[A-Za-z0-9_\-]{3,16}$/.test(username)) {
+    return res.status(400).json({ error: "username must be 3-16 letters, digits, _ or -" });
+  }
   try {
     await cognito.send(new SignUpCommand({
       ClientId: CLIENT_ID,
@@ -65,15 +68,15 @@ router.post("/login", async (req, res) => {
     }));
     const tokens = result.AuthenticationResult;
     res.status(200).json({
-      token: tokens.IdToken,
-      refreshToken: tokens.RefreshToken,
+      token: tokens.IdToken,           // identifies the user to this API
+      accessToken: tokens.AccessToken, // only used for server-side logout
     });
   } catch (err) {
     res.status(401).json({ error: err.message });
   }
 });
 
-// Logout — invalidates all tokens server-side
+// Logout — revokes the user's tokens in Cognito. Expects the ACCESS token (GlobalSignOut rejects id tokens)
 router.post("/logout", async (req, res) => {
   const header = req.headers.authorization;
   if (!header || !header.startsWith("Bearer ")) {

@@ -8,29 +8,20 @@ import CRT from "../components/CRT";
 import Bezel from "../components/Bezel";
 import ScreenHead from "../components/ScreenHead";
 
-// AWS_WIRE: fetchLeaderboard() calls GET /scores?game=&period= → DynamoDB
-
-const MOCK_ROWS = [
-  ["01","PIXELWYRM","12,840","02:14"],
-  ["02","APPLE_EATER","11,200","01:58"],
-  ["03","SSSNEK","9,900","02:40"],
-  ["04","guest_42","8,420","01:30", true],
-  ["05","TAILSPIN","7,110","01:45"],
-  ["06","grass_main","6,800","01:20"],
-  ["07","COIL","5,400","01:02"],
-  ["08","NIBBLER","4,900","00:58"],
-];
+// Top-10 per game from GET /scores/:gameId?period= (DynamoDB GSI sorted by score)
 
 const PERIODS = ["TODAY", "WEEK", "ALL TIME"];
+const PERIOD_PARAM = { "TODAY": "today", "WEEK": "week", "ALL TIME": "all" };
+// Battleship has no score to rank (it only counts games played), so it has no leaderboard
+const GAMES = ["SNAKE", "FLAPPY", "MEMORY"];
 
 export default function Leaderboard() {
-  const { tweaks, navigate, user } = useApp();
+  const { navigate, user } = useApp();
   const playClick = useClickSound();
-  const GAMES = ["SNAKE", "FLAPPY", "MEMORY", "TIC-TAC", tweaks.g5];
 
   const [gameIdx,   setGameIdx]   = useState(0);
   const [periodIdx, setPeriodIdx] = useState(0);
-  const [rows,      setRows]      = useState(MOCK_ROWS);
+  const [rows,      setRows]      = useState([]);
   const [loading,   setLoading]   = useState(false);
 
   const game   = GAMES[gameIdx];
@@ -38,9 +29,9 @@ export default function Leaderboard() {
 
   useEffect(() => {
     setLoading(true);
-    fetchLeaderboard(game)
+    fetchLeaderboard(game, PERIOD_PARAM[period])
       .then(data => {
-        if (!data?.leaderboard) return;
+        if (!data?.leaderboard) { setRows([]); return; }
         const mapped = data.leaderboard.map((item, i) => [
           String(i + 1).padStart(2, "0"),
           item.username || item.userId.slice(0, 8),
@@ -51,9 +42,9 @@ export default function Leaderboard() {
         ]);
         setRows(mapped);
       })
-      .catch(() => {})
+      .catch(() => setRows([]))
       .finally(() => setLoading(false));
-  }, [game]);
+  }, [game, period]);
 
   // Left/right switches game, up/down switches period, ESC goes back
   useKeyNav(e => {
@@ -96,6 +87,8 @@ export default function Leaderboard() {
           <tbody>
             {loading
               ? <tr><td colSpan={5} style={{ textAlign: "center", padding: 30 }} className="muted pixel">LOADING...</td></tr>
+              : rows.length === 0
+              ? <tr><td colSpan={5} style={{ textAlign: "center", padding: 30 }} className="muted pixel">NO SCORES YET — BE THE FIRST</td></tr>
               : rows.map(r => (
                 <tr key={r[0]} className={r[4] ? "you" : ""}>
                   <td className="pixel" style={{ fontSize: 10, color: "var(--phos)" }}>{r[0]}</td>

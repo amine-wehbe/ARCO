@@ -14,16 +14,31 @@ resource "aws_iam_role" "ec2" {
   tags = { Name = "${var.project}-ec2-role" }
 }
 
-# Full DynamoDB access — read/write arco-users and arco-scores
-resource "aws_iam_role_policy_attachment" "dynamo" {
-  role       = aws_iam_role.ec2.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
-}
+# Least privilege — only the item operations the server uses, only on the two ARCO tables (+ GSI).
+# No Cognito policy is needed: SignUp, ConfirmSignUp, InitiateAuth and GlobalSignOut are public
+# app-client APIs that authenticate with the client id / user tokens, not IAM.
+resource "aws_iam_role_policy" "dynamo" {
+  name = "${var.project}-dynamo-access"
+  role = aws_iam_role.ec2.id
 
-# Cognito power user — lets the server call SignUp, ConfirmSignUp, InitiateAuth, etc.
-resource "aws_iam_role_policy_attachment" "cognito" {
-  role       = aws_iam_role.ec2.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonCognitoPowerUser"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+      ]
+      Resource = [
+        aws_dynamodb_table.users.arn,
+        aws_dynamodb_table.scores.arn,
+        "${aws_dynamodb_table.scores.arn}/index/*",
+      ]
+    }]
+  })
 }
 
 # Instance profile wraps the role so EC2 can assume it on launch

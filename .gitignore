@@ -11,3 +11,7 @@ terraform/.terraform.lock.hcl
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 terraform/arco-key.pem
+
+# Local assistant / course files
+.claude/
+PRESENTATION.md

@@ -41,10 +41,21 @@ export async function cognitoConfirm(email, code) {
   return post("/auth/confirm", { email, code });
 }
 
+// Random id for a guest, stable for this browser tab — lets the server tell guests apart
+export function getGuestId() {
+  let id = sessionStorage.getItem("arco_guest_id");
+  if (!id) {
+    id = crypto.randomUUID();
+    sessionStorage.setItem("arco_guest_id", id);
+  }
+  return id;
+}
+
 // Login — stores token, returns { userId, displayName, email }
 export async function cognitoSignIn(email, password) {
   const data = await post("/auth/login", { email, password });
   localStorage.setItem("arco_id_token", data.token);
+  if (data.accessToken) localStorage.setItem("arco_access_token", data.accessToken);
   const payload = parseJwt(data.token);
   return {
     userId:      payload.sub,
@@ -53,9 +64,17 @@ export async function cognitoSignIn(email, password) {
   };
 }
 
-// Logout — clears local token (server-side invalidation is a bonus if it works)
+// Logout — revokes tokens in Cognito (best effort), then clears them locally
 export async function cognitoSignOut() {
+  const accessToken = localStorage.getItem("arco_access_token");
+  if (accessToken) {
+    await fetch(`${BASE}/auth/logout`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }).catch(() => {});
+  }
   localStorage.removeItem("arco_id_token");
+  localStorage.removeItem("arco_access_token");
 }
 
 // ── Users ──────────────────────────────────────────────────────────────────
@@ -78,8 +97,8 @@ export async function updateProfile(userId, fields) {
 // ── Scores ─────────────────────────────────────────────────────────────────
 
 // Top 10 for a given game (public)
-export async function fetchLeaderboard(game = "snake") {
-  return get(`/scores/${game.toLowerCase()}`);
+export async function fetchLeaderboard(game = "snake", period = "all") {
+  return get(`/scores/${game.toLowerCase()}?period=${period}`);
 }
 
 // Post a score for the logged-in user

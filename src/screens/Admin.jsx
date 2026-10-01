@@ -108,9 +108,9 @@ export default function Admin() {
             {/* CPU chart — visual only */}
             <div style={{ border: "2px solid var(--phos-dim)", padding: 12 }}>
               <div className="row">
-                <div className="label">CPU · LAST 1H · arco-api EC2</div>
+                <div className="label">CPU · SAMPLE DATA</div>
                 <div className="grow" />
-                <span className="pill">CLOUDWATCH</span>
+                <span className="pill">CLOUDWATCH · NOT WIRED</span>
               </div>
               <svg viewBox="0 0 600 80" style={{ width: "100%", height: 80, marginTop: 6 }}>
                 <path d="M0,60 L40,55 L80,50 L120,58 L160,42 L200,36 L240,40 L280,28 L320,22 L360,30 L400,18 L440,24 L480,16 L520,22 L560,14 L600,20" fill="none" stroke="var(--phos)" strokeWidth="2" />

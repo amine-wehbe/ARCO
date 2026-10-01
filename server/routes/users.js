@@ -5,6 +5,7 @@ const db = require("../db/dynamo");
 const requireAuth = require("../middleware/auth");
 
 const TABLE = "arco-users";
+const USERNAME_RE = /^[A-Za-z0-9_\-]{3,16}$/;
 
 // Get a user profile by userId
 router.get("/:id", requireAuth, async (req, res) => {
@@ -16,7 +17,9 @@ router.get("/:id", requireAuth, async (req, res) => {
     if (!result.Item) {
       return res.status(404).json({ error: "User not found" });
     }
-    res.status(200).json(result.Item);
+    // Email is private — only returned to the profile owner
+    const { email, ...publicProfile } = result.Item;
+    res.status(200).json(req.userId === req.params.id ? result.Item : publicProfile);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -31,6 +34,12 @@ router.patch("/:id", requireAuth, async (req, res) => {
   const { username, avatar } = req.body;
   if (!username && !avatar) {
     return res.status(400).json({ error: "Nothing to update" });
+  }
+  if (username && !USERNAME_RE.test(username)) {
+    return res.status(400).json({ error: "username must be 3-16 letters, digits, _ or -" });
+  }
+  if (avatar && !/^\d{1,2}$/.test(String(avatar))) {
+    return res.status(400).json({ error: "invalid avatar" });
   }
 
   const updates = [];
@@ -54,8 +63,8 @@ router.patch("/:id", requireAuth, async (req, res) => {
 // Create a user profile entry (called once after signup confirmation)
 router.post("/", requireAuth, async (req, res) => {
   const { username } = req.body;
-  if (!username) {
-    return res.status(400).json({ error: "username is required" });
+  if (!username || !USERNAME_RE.test(username)) {
+    return res.status(400).json({ error: "username must be 3-16 letters, digits, _ or -" });
   }
 
   const item = {

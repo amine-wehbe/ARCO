@@ -4,8 +4,8 @@
 set -euxo pipefail
 
 # Base packages
-yum update -y
-yum install -y git
+dnf update -y
+dnf install -y git
 
 # Write env file first as root, then copy it later
 cat > /home/ec2-user/.arco_env <<'ENVEOF'
@@ -26,9 +26,9 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 export NVM_DIR="$HOME/.nvm"
 source "$NVM_DIR/nvm.sh"
 
-nvm install 16
-nvm use 16
-nvm alias default 16
+nvm install 20
+nvm use 20
+nvm alias default 20
 
 npm install -g pm2
 

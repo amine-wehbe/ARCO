@@ -2,7 +2,11 @@
 
 A retro CRT-styled arcade web app with 4 games, real-time online multiplayer, AWS-backed auth, leaderboards, and user profiles.
 
-**Live:** https://dmlg1bi4iczn7.cloudfront.net
+![ARCO game library](docs/screenshots/2-library.png)
+
+| Leaderboard | Online Battleship |
+|---|---|
+| ![Leaderboard](docs/screenshots/3-leaderboard.png) | ![Battleship](docs/screenshots/6-battleship.png) |
 
 ---
 
@@ -67,19 +71,21 @@ Spins up the full stack on a fresh AWS account with a single command.
 ### Prerequisites
 - [Terraform](https://developer.hashicorp.com/terraform/install) installed
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) configured
-- Node.js 18+ and npm installed (for the frontend build step)
+- Node.js 20+ and npm installed (for the frontend build step)
 
 ### Steps
 
 ```bash
 git clone https://github.com/amine-wehbe/ARCO.git
-cd ARCO/arco
+cd ARCO
 
 aws configure   # enter your AWS credentials + region: eu-west-1
 
 cd terraform
 terraform init
 terraform apply # type "yes" — takes ~15–20 min (CloudFront deployment)
+# SSH is closed by default. To open it to your IP only:
+# terraform apply -var "ssh_cidr=$(curl -s ifconfig.me)/32"
 ```
 
 After apply, the terminal prints:
@@ -152,16 +158,17 @@ node index.js
 - GSI: `gameId-score-index` — PK: `gameId`, SK: `score` (Number)
 
 ### 3. IAM Role
-Create `arco-ec2-role` with `AmazonDynamoDBFullAccess` + `AmazonCognitoPowerUser`. Attach to EC2.
+Create `arco-ec2-role` with an inline policy allowing only `dynamodb:GetItem`, `PutItem`, `UpdateItem`, `Query` and `Scan` on the `arco-users` and `arco-scores` tables (and `arco-scores/index/*`). Attach to EC2. No Cognito permissions are needed — the auth calls are public app-client APIs.
 
-### 4. EC2 (Amazon Linux 2, t3.micro)
+### 4. EC2 (Amazon Linux 2023, t3.micro)
+
+Security group: port 3000 from the CloudFront origin-facing prefix list only (`com.amazonaws.global.cloudfront.origin-facing`), port 22 from your IP only.
 
 ```bash
-curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
-yum install -y nodejs git
+dnf install -y git nodejs20 nodejs20-npm
 npm install -g pm2
 git clone https://github.com/amine-wehbe/ARCO.git
-cd ARCO/arco/server
+cd ARCO/server
 npm install
 # create .env with Cognito values
 pm2 start index.js --name arco-server
@@ -228,6 +235,8 @@ GET /health          → { status: "ok" }
 
 Powered by socket.io on the same EC2 port (3000), routed through CloudFront via the `/socket.io*` behavior.
 
+Players are identified once, at connection time: signed-in users by their verified Cognito ID token, guests by a random per-tab ID. Room events never trust a user ID sent by the client, so nobody can take over another player's seat or read their board.
+
 - Create a room → get a 4-character code
 - Share code with opponent → they join
 - Place ships → both confirm → game starts
@@ -238,8 +247,8 @@ Powered by socket.io on the same EC2 port (3000), routed through CloudFront via 
 ## Restarting EC2 After Stop
 
 ```bash
-# SSH in
-ssh -i ~/.ssh/arco-key.pem ec2-user@54.195.242.3
+# SSH in (get the exact command with: terraform output ssh_command)
+ssh -i terraform/arco-key.pem ec2-user@<ELASTIC-IP>
 
 # Check server status
 pm2 status

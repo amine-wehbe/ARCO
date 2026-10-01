@@ -15,6 +15,7 @@ function buildBoard(ships) {
   const board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
   for (const { name, cells } of ships) {
     for (const { r, c } of cells) {
+      if (!Number.isInteger(r) || !Number.isInteger(c)) return null;
       if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return null;
       if (board[r][c]) return null; // overlap
       board[r][c] = name;
@@ -34,12 +35,16 @@ function validateShips(ships) {
     const sameRow = rows.every(r => r === rows[0]);
     const sameCol = cols.every(c => c === cols[0]);
     if (!sameRow && !sameCol) return false;
+    // Cells must be consecutive — no gaps (e.g. a carrier spread over columns 0,2,4,6,8)
+    const line = (sameRow ? cols : rows).slice().sort((a, b) => a - b);
+    if (line.some((v, i) => i > 0 && v !== line[i - 1] + 1)) return false;
   }
   return buildBoard(ships) !== null;
 }
 
 // Process an attack — mutates shots array, returns { hit, sunkShip, gameOver } or null if invalid
 function processAttack(board, shots, r, c) {
+  if (!board || !shots || !Number.isInteger(r) || !Number.isInteger(c)) return null;
   if (r < 0 || r >= ROWS || c < 0 || c >= COLS || shots[r][c].fired) return null;
   const hit = !!board[r][c];
   shots[r][c] = { fired: true, hit };
